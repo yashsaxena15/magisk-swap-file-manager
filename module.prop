@@ -1,0 +1,6 @@
+id=swapfile-manager
+name=Swap File Manager
+version=v1.0
+versionCode=1
+author=Yash Saxena
+description=Creates and manages 1GB swap file with priority below ZRAM

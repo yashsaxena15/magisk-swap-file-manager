@@ -1,0 +1,21 @@
+#!/sbin/sh
+SKIPUNZIP=1
+extract() { unzip -o "$ZIPFILE" "$1" -d "$MODPATH"; }
+ui_print() { echo "$1"; }
+MODPATH="${MODPATH}"
+unzip -o "$ZIPFILE" 'module.prop' -d "$MODPATH"
+unzip -o "$ZIPFILE" 'service.sh' -d "$MODPATH"
+
+# Create swapfile if not exists
+if [ ! -f /data/swap.img ]; then
+    ui_print "- Creating 1GB swap file..."
+    dd if=/dev/zero of=/data/swap.img bs=1M count=1024
+    chmod 600 /data/swap.img
+    mkswap /data/swap.img
+    ui_print "- Swap file created!"
+else
+    ui_print "- Swap file already exists, skipping creation"
+fi
+
+chmod +x "$MODPATH/service.sh"
+ui_print "- Done! Reboot to activate."

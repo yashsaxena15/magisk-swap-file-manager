@@ -1,29 +1,51 @@
 #!/system/bin/sh
 
 LOG=/data/local/tmp/logs/swap.log
+SWAPFILE=/data/swap.img
+SIZE_MB=1024
 
-# checking log directory exists or not
+# Create log directory
 mkdir -p /data/local/tmp/logs
 
 echo "[$(date)] Swap script started" >> $LOG
 
-# wait until /data folder mounts
-until [ -f /data/swap.img ]; do
-    echo "[$(date)] Waiting for /data to mount..." >> $LOG
+# Wait until boot completed
+while [ "$(getprop sys.boot_completed)" != "1" ]; do
+    echo "[$(date)] Waiting for boot completion..." >> $LOG
     sleep 5
 done
 
-echo "[$(date)] /data mounted, swap.img found" >> $LOG
-
-# additional wait
+# Extra wait for MIUI services
 sleep 60
 
-# disable swap if active already
-swapoff /data/swap.img 2>/dev/null
-echo "[$(date)] Old swap disabled (if any)" >> $LOG
+echo "[$(date)] Boot completed" >> $LOG
 
-# Enable
-/system/bin/swapon /data/swap.img
+# Create swap file if missing
+if [ ! -f "$SWAPFILE" ]; then
+    echo "[$(date)] Creating swap file..." >> $LOG
+
+    /system/bin/dd if=/dev/zero of=$SWAPFILE bs=1M count=$SIZE_MB
+
+    chmod 600 $SWAPFILE
+
+    mkswap $SWAPFILE
+
+    if [ $? -eq 0 ]; then
+        echo "[$(date)] Swap file created successfully" >> $LOG
+    else
+        echo "[$(date)] ERROR: mkswap failed!" >> $LOG
+        exit 1
+    fi
+fi
+
+# Disable old swap if active
+swapoff $SWAPFILE 2>/dev/null
+
+echo "[$(date)] Old swap disabled" >> $LOG
+
+# Enable swap
+/system/bin/swapon $SWAPFILE
+
 if [ $? -eq 0 ]; then
     PRIO=$(awk '/swap.img/{print $5}' /proc/swaps)
     echo "[$(date)] Swap enabled successfully! Priority: $PRIO" >> $LOG
@@ -31,7 +53,7 @@ else
     echo "[$(date)] ERROR: swapon failed!" >> $LOG
 fi
 
-# Current swap log status 
+# Log current swap status
 cat /proc/swaps >> $LOG
-echo "---" >> $LOG
 
+echo "---" >> $LOG

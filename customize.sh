@@ -67,7 +67,6 @@ mkdir -p /data/adb
 
 cat > /data/adb/swap-manager.conf <<EOF
 SWAP_SIZE_MB=$SWAPSIZE
-SWAP_FILE=/data/swap.img
 SWAPPINESS=100
 EOF
 

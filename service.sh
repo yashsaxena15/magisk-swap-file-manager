@@ -16,7 +16,7 @@ else
     exit 1
 fi
 
-SWAPFILE=$SWAP_FILE
+SWAPFILE=/data/swap.img
 SIZE_MB=$SWAP_SIZE_MB
 
 # Wait until boot completed
@@ -30,10 +30,21 @@ sleep 60
 
 echo "[$(date)] Boot completed" >> $LOG
 
-# Create swap file if missing
-if [ ! -f "$SWAPFILE" ]; then
-    echo "[$(date)] Creating swap file..." >> $LOG
+# Expected size in bytes
+EXPECTED_SIZE=$((SIZE_MB * 1024 * 1024))
 
+# Recreate if missing or wrong size
+if [ ! -f "$SWAPFILE" ] || [ "$(/system/bin/stat -c%s "$SWAPFILE")" -ne "$EXPECTED_SIZE" ]; then
+
+    echo "[$(date)] Creating/Recreating swap file..." >> $LOG
+
+    # Disable old swap if active
+    swapoff $SWAPFILE 2>/dev/null
+
+    # Remove old file
+    rm -f $SWAPFILE
+
+    # Create new file
     /system/bin/dd if=/dev/zero of=$SWAPFILE bs=1M count=$SIZE_MB
 
     chmod 600 $SWAPFILE
@@ -41,7 +52,7 @@ if [ ! -f "$SWAPFILE" ]; then
     /system/bin/mkswap $SWAPFILE
 
     if [ $? -eq 0 ]; then
-        echo "[$(date)] Swap file created successfully" >> $LOG
+        echo "[$(date)] Swap file created successfully (${SIZE_MB}MB)" >> $LOG
     else
         echo "[$(date)] ERROR: mkswap failed!" >> $LOG
         exit 1

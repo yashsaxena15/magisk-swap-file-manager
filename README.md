@@ -73,7 +73,6 @@ Example:
 
 ```properties
 SWAP_SIZE_MB=1024
-SWAP_FILE=/data/swap.img
 SWAPPINESS=100
 ```
 

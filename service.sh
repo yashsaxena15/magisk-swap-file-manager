@@ -1,13 +1,23 @@
 #!/system/bin/sh
 
 LOG=/data/local/tmp/logs/swap.log
-SWAPFILE=/data/swap.img
-SIZE_MB=1024
+CONFIG=/data/adb/swap-manager.conf
 
 # Create log directory
 mkdir -p /data/local/tmp/logs
 
 echo "[$(date)] Swap script started" >> $LOG
+
+# Load config
+if [ -f "$CONFIG" ]; then
+    . "$CONFIG"
+else
+    echo "[$(date)] Config file missing!" >> $LOG
+    exit 1
+fi
+
+SWAPFILE=$SWAP_FILE
+SIZE_MB=$SWAP_SIZE_MB
 
 # Wait until boot completed
 while [ "$(getprop sys.boot_completed)" != "1" ]; do
@@ -28,7 +38,7 @@ if [ ! -f "$SWAPFILE" ]; then
 
     chmod 600 $SWAPFILE
 
-    mkswap $SWAPFILE
+    /system/bin/mkswap $SWAPFILE
 
     if [ $? -eq 0 ]; then
         echo "[$(date)] Swap file created successfully" >> $LOG
@@ -47,8 +57,13 @@ echo "[$(date)] Old swap disabled" >> $LOG
 /system/bin/swapon $SWAPFILE
 
 if [ $? -eq 0 ]; then
+
+    # Apply swappiness
+    echo $SWAPPINESS > /proc/sys/vm/swappiness
+
     PRIO=$(awk '/swap.img/{print $5}' /proc/swaps)
-    echo "[$(date)] Swap enabled successfully! Priority: $PRIO" >> $LOG
+
+    echo "[$(date)] Swap enabled successfully! Priority: $PRIO | Swappiness: $SWAPPINESS" >> $LOG
 else
     echo "[$(date)] ERROR: swapon failed!" >> $LOG
 fi
